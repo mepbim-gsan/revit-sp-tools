@@ -1,10 +1,10 @@
 <!--
   @tool      SP Tools (Viewer / Diff / Editor)
-  @version   v02_2026-03-31.13
+  @version   v02_2026-03-31.16
   @chat      SP_02_統合ファイルの作成
   @changelog
-    v02_2026-03-31.13 - Groups ID変更の元に戻す検出をChangeLogに反映
-    v02_2026-03-31.12 - Diffファイルロードを折りたたみ式に変更（Viewerと同様）
+    v02_2026-03-31.16 - Viewerフィルタにグループ名・descriptionを追加
+    v02_2026-03-31.15 - ChangeLog件数上限を撤廃・Editorフィルタにguid/descriptionを追加
     v02_2026-03-31 - Viewer/Diff/Editor統合、各種機能追加・修正
     v01_2026-03-26 - 初版（sp-viewer / sp-diff / sp-editor 個別開発）
 -->
@@ -213,7 +213,7 @@ textarea.cell-input{resize:none;overflow:hidden;line-height:1.4;vertical-align:t
     <button class="lang-btn active" id="btnEN" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btnJP" onclick="setLang('jp')">JP</button>
   </div>
-  <span class="nav-version">v02_2026-03-31.13</span>
+  <span class="nav-version">v02_2026-03-31.16</span>
 </div>
 
 <!-- TAB NAV -->
@@ -535,7 +535,7 @@ textarea.cell-input{resize:none;overflow:hidden;line-height:1.4;vertical-align:t
       </span>
       <button class="btn btn-sm" onclick="exportChangeLogCSV()">⬇ CSV</button>
       <button class="btn btn-sm" onclick="clearChangelog()"><span class="i18n" data-en="Clear" data-jp="クリア"></span></button>
-      <span style="margin-left:auto;font-size:11px;color:var(--muted)" class="i18n" data-en="Latest 200 entries" data-jp="最新200件"></span>
+      <span style="margin-left:auto;font-size:11px;color:var(--muted)" class="i18n" data-en="All entries (session)" data-jp="全件（セッション中）"></span>
       <button onclick="toggleChangeLog()" style="background:none;border:none;cursor:pointer;font-size:14px;color:var(--muted)" id="eLogToggleBtn">▼</button>
     </div>
     <div id="eLogArea" style="border:1px solid var(--border);border-radius:6px;overflow:auto;max-height:160px">
@@ -918,10 +918,12 @@ function filterVTable() {
   }
   // テキスト検索
   if (q) {
-    filtered = filtered.filter(p =>
-      p.name.toLowerCase().includes(q) || p.guid.toLowerCase().includes(q) ||
-      p.datatype.toLowerCase().includes(q) || p.group.toLowerCase().includes(q)
-    );
+    filtered = filtered.filter(p => {
+      const gname = (vState.groups[p.group] || '').toLowerCase();
+      return p.name.toLowerCase().includes(q) || p.guid.toLowerCase().includes(q) ||
+        p.datatype.toLowerCase().includes(q) || p.group.toLowerCase().includes(q) ||
+        gname.includes(q) || p.description.toLowerCase().includes(q);
+    });
   }
   renderVTable(filtered);
 }
@@ -1594,7 +1596,13 @@ function renderParams() {
   });
   let params = [...eState.params];
   if (grpFilter) params = params.filter(p => p.group === grpFilter);
-  if (q) params = params.filter(p=>p.name.toLowerCase().includes(q)||p.datatype.toLowerCase().includes(q)||p.group.toLowerCase().includes(q));
+  if (q) params = params.filter(p =>
+    p.name.toLowerCase().includes(q) ||
+    p.guid.toLowerCase().includes(q) ||
+    p.datatype.toLowerCase().includes(q) ||
+    p.group.toLowerCase().includes(q) ||
+    p.description.toLowerCase().includes(q)
+  );
   if (eParamSort.key) {
     params.sort((a,b) => {
       if (eParamSort.key === '_seq') {
@@ -1944,7 +1952,6 @@ function logEChange(status, p, field, oldVal, newVal) {
     }
   }
   eChangeLog.unshift({status, user, guid, name:p?.name||'', field, old:oldVal, new:newVal, ts:new Date().toLocaleString('ja-JP')});
-  if (eChangeLog.length>200) eChangeLog.pop();
   renderChangeLog();
 }
 
@@ -1952,7 +1959,7 @@ function renderChangeLog() {
   const tbody = document.getElementById('eChangeLog');
   if (!tbody) return;
   const nl2br = s => escHtml(s).replace(/\n/g,'<br>');
-  tbody.innerHTML = eChangeLog.slice(0,200).map(r => {
+  tbody.innerHTML = eChangeLog.map(r => {
     const cls = {ADD:'log-add',DEL:'log-del',CHG:'log-chg'}[r.status]||'';
     const stClr = {ADD:'#16a34a',DEL:'#dc2626',CHG:'#d97706'}[r.status]||'';
     const td  = (content, extra='') => `<td style="padding:2px 6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap${extra}">${content}</td>`;
