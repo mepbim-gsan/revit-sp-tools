@@ -1,10 +1,10 @@
 <!--
   @tool      SP Tools (Viewer / Diff / Editor)
-  @version   v02_2026-03-31.11
+  @version   v02_2026-03-31.12
   @chat      SP_02_統合ファイルの作成
   @changelog
-    v02_2026-03-31.11 - Diff Export HTML/CSV にファイル情報（名前・更新日時・サイズ）を追加
-    v02_2026-03-31.10 - addParam スクロール・フォーカス修正
+    v02_2026-03-31.12 - Diffファイルロードを折りたたみ式に変更（Viewerと同様）
+    v02_2026-03-31.11 - Diff Export HTML/CSV にファイル情報を追加
     v02_2026-03-31 - Viewer/Diff/Editor統合、各種機能追加・修正
     v01_2026-03-26 - 初版（sp-viewer / sp-diff / sp-editor 個別開発）
 -->
@@ -213,7 +213,7 @@ textarea.cell-input{resize:none;overflow:hidden;line-height:1.4;vertical-align:t
     <button class="lang-btn active" id="btnEN" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btnJP" onclick="setLang('jp')">JP</button>
   </div>
-  <span class="nav-version">v02_2026-03-31.11</span>
+  <span class="nav-version">v02_2026-03-31.12</span>
 </div>
 
 <!-- TAB NAV -->
@@ -335,37 +335,51 @@ textarea.cell-input{resize:none;overflow:hidden;line-height:1.4;vertical-align:t
 
 <!-- ========== DIFF TAB ========== -->
 <div id="tab-diff" class="tab-page">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
-    <!-- File A -->
-    <div class="card">
-      <h3>File A <span id="dAName" style="font-size:11px;font-weight:400;color:var(--muted)"></span></h3>
-      <div class="file-zone" onclick="document.getElementById('dFileA').click()"
-           ondragover="event.preventDefault();this.classList.add('drag')"
-           ondragleave="this.classList.remove('drag')"
-           ondrop="event.preventDefault();this.classList.remove('drag');handleDFile('A',event.dataTransfer.files[0])">
-        <div class="icon">📄</div>
-        <div class="label i18n" data-en="Click or drag .txt" data-jp="ファイルをドロップ"></div>
-        <input type="file" id="dFileA" accept=".txt" onchange="handleDFile('A',this.files[0])">
+
+  <!-- Load (collapsible) -->
+  <div class="collapsible-header" onclick="toggleSection('dLoad')">
+    <span class="ch-title">📂 <span class="i18n" data-en="Load Files" data-jp="ファイルを読み込む"></span>
+      <span id="dLoadStatus" style="font-size:11px;font-weight:400;color:var(--muted);margin-left:8px"></span>
+    </span>
+    <span id="dLoad-arrow">▼</span>
+  </div>
+  <div class="collapsible-body" id="dLoad-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 0 4px">
+      <!-- File A -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px">File A</div>
+        <div class="file-zone" onclick="document.getElementById('dFileA').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="event.preventDefault();this.classList.remove('drag');handleDFile('A',event.dataTransfer.files[0])">
+          <div class="icon">📄</div>
+          <div class="label i18n" data-en="Click or drag .txt" data-jp="ファイルをドロップ"></div>
+          <input type="file" id="dFileA" accept=".txt" onchange="handleDFile('A',this.files[0])">
+        </div>
+      </div>
+      <!-- File B -->
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--accent);margin-bottom:6px">File B</div>
+        <div class="file-zone" onclick="document.getElementById('dFileB').click()"
+             ondragover="event.preventDefault();this.classList.add('drag')"
+             ondragleave="this.classList.remove('drag')"
+             ondrop="event.preventDefault();this.classList.remove('drag');handleDFile('B',event.dataTransfer.files[0])">
+          <div class="icon">📄</div>
+          <div class="label i18n" data-en="Click or drag .txt" data-jp="ファイルをドロップ"></div>
+          <input type="file" id="dFileB" accept=".txt" onchange="handleDFile('B',this.files[0])">
+        </div>
       </div>
     </div>
-    <!-- File B -->
-    <div class="card">
-      <h3>File B <span id="dBName" style="font-size:11px;font-weight:400;color:var(--muted)"></span></h3>
-      <div class="file-zone" onclick="document.getElementById('dFileB').click()"
-           ondragover="event.preventDefault();this.classList.add('drag')"
-           ondragleave="this.classList.remove('drag')"
-           ondrop="event.preventDefault();this.classList.remove('drag');handleDFile('B',event.dataTransfer.files[0])">
-        <div class="icon">📄</div>
-        <div class="label i18n" data-en="Click or drag .txt" data-jp="ファイルをドロップ"></div>
-        <input type="file" id="dFileB" accept=".txt" onchange="handleDFile('B',this.files[0])">
-      </div>
+    <div style="text-align:center;margin-top:8px">
+      <button class="btn btn-sm" onclick="loadDSample()" id="btnDSample"></button>
     </div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px">
+
+  <!-- Toolbar -->
+  <div style="display:flex;gap:8px;align-items:center;margin:10px 0 16px">
     <button class="btn btn-primary" onclick="runDiff()" id="btnRunDiff" disabled>
       ▶ <span class="i18n" data-en="Run Diff" data-jp="比較実行"></span>
     </button>
-    <button class="btn btn-sm" onclick="loadDSample()" id="btnDSample"></button>
   </div>
 
   <!-- Diff summary cards -->
@@ -1050,10 +1064,27 @@ function handleDFile(slot, file) {
       lastModified: file.lastModified ? new Date(file.lastModified).toLocaleString('ja-JP') : '—',
       size: file.size ? (file.size/1024).toFixed(1)+' KB' : '—',
     };
-    document.getElementById('d'+slot+'Name').textContent = file.name;
+    updateDLoadStatus();
     checkDRunnable();
   };
   fr.readAsArrayBuffer(file);
+}
+
+function updateDLoadStatus() {
+  const na = dSlots.A?.name || '';
+  const nb = dSlots.B?.name || '';
+  const status = document.getElementById('dLoadStatus');
+  if (status) {
+    if (na && nb) status.textContent = `A: ${na}  /  B: ${nb}`;
+    else if (na) status.textContent = `A: ${na}`;
+    else if (nb) status.textContent = `B: ${nb}`;
+    else status.textContent = '';
+  }
+  // 両ファイルロード済みなら折り畳む
+  if (na && nb) {
+    const body = document.getElementById('dLoad-body');
+    if (body && !body.classList.contains('closed')) toggleSection('dLoad');
+  }
 }
 
 function checkDRunnable() {
@@ -1292,10 +1323,9 @@ PARAM\tA6B7C8D9-E0F1-2345-0123-567890123456\tスプリンクラー数\tINTEGER\t
 PARAM\tB7C8D9E0-F1A2-3456-1234-678901234567\t感知器種別\tTEXT\t\t6\t1\t火災感知器の種別\t1\t0`;
 
 function loadDSample() {
-  dSlots.A = {text:DSAMPLE_A, name:'sample_A.txt'};
-  dSlots.B = {text:DSAMPLE_B, name:'sample_B.txt'};
-  document.getElementById('dAName').textContent = 'sample_A.txt';
-  document.getElementById('dBName').textContent = 'sample_B.txt';
+  dSlots.A = {text:DSAMPLE_A, name:'sample_A.txt', lastModified:'—', size:'—'};
+  dSlots.B = {text:DSAMPLE_B, name:'sample_B.txt', lastModified:'—', size:'—'};
+  updateDLoadStatus();
   checkDRunnable();
   runDiff();
 }
