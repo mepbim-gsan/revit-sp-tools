@@ -1,10 +1,10 @@
 <!--
   @tool      SP Tools (Viewer / Diff / Editor)
-  @version   v02_2026-03-31.12
+  @version   v02_2026-03-31.13
   @chat      SP_02_統合ファイルの作成
   @changelog
+    v02_2026-03-31.13 - Groups ID変更の元に戻す検出をChangeLogに反映
     v02_2026-03-31.12 - Diffファイルロードを折りたたみ式に変更（Viewerと同様）
-    v02_2026-03-31.11 - Diff Export HTML/CSV にファイル情報を追加
     v02_2026-03-31 - Viewer/Diff/Editor統合、各種機能追加・修正
     v01_2026-03-26 - 初版（sp-viewer / sp-diff / sp-editor 個別開発）
 -->
@@ -213,7 +213,7 @@ textarea.cell-input{resize:none;overflow:hidden;line-height:1.4;vertical-align:t
     <button class="lang-btn active" id="btnEN" onclick="setLang('en')">EN</button>
     <button class="lang-btn" id="btnJP" onclick="setLang('jp')">JP</button>
   </div>
-  <span class="nav-version">v02_2026-03-31.12</span>
+  <span class="nav-version">v02_2026-03-31.13</span>
 </div>
 
 <!-- TAB NAV -->
@@ -1488,7 +1488,7 @@ function changeGroupId(input) {
     if (nameInput) nameInput.setAttribute('onchange', `changeGroupName(this,'${escHtml(newId)}')`);
   }
   eState.params.forEach(p => { if (p.group === oldId) p.group = newId; });
-  logEChange('CHG', {name:'GROUP '+oldId}, 'id', oldId, newId);
+  logEChange('CHG', {guid:'_grp_'+g._id, name:'GROUP'}, 'id', oldId, newId);
 }
 
 function changeGroupName(input, id) {
@@ -1496,7 +1496,7 @@ function changeGroupName(input, id) {
   if (!g) return;
   const old = g.name;
   g.name = input.value;
-  logEChange('CHG', {name:'GROUP '+id}, 'name', old, g.name);
+  logEChange('CHG', {guid:'_grp_'+g._id, name:'GROUP'}, 'name', old, g.name);
 }
 
 function addGroup() {
